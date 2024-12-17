@@ -8,7 +8,7 @@
 {
   upstream:
   {
-    url: https://github.com/esl-epfl/cv32e40px.git
-    rev: 10b08065c50d44b5355c1535cb8f740e68e4f106
+    url: https://github.com/iken1997/cv32e40px.git
+    rev: 1d62219aedbbea90b3ae6c30c47b24574281f0f6
   }
 }

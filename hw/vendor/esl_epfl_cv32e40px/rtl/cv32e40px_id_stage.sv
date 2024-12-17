@@ -63,7 +63,7 @@ module cv32e40px_id_stage
 
     // Interface to IF stage
     input  logic        instr_valid_i,
-    input  logic [31:0] instr_rdata_i,  // comes from pipeline of IF stage
+    input  logic [31:0] instr_rdata_i,    // comes from pipeline of IF stage
     output logic        instr_req_o,
     input  logic        is_compressed_i,
     input  logic        illegal_c_insn_i,
@@ -236,8 +236,8 @@ module cv32e40px_id_stage
     // Interrupt signals
     input  logic [31:0] irq_i,
     input  logic        irq_sec_i,
-    input  logic [31:0] mie_bypass_i,  // MIE CSR (bypass)
-    output logic [31:0] mip_o,  // MIP CSR
+    input  logic [31:0] mie_bypass_i,    // MIE CSR (bypass)
+    output logic [31:0] mip_o,           // MIP CSR
     input  logic        m_irq_enable_i,
     input  logic        u_irq_enable_i,
     output logic        irq_ack_o,
@@ -267,10 +267,10 @@ module cv32e40px_id_stage
     input logic regfile_we_wb_power_i,
     input  logic [31:0] regfile_wdata_wb_i, // From wb_stage: selects data from data memory, ex_stage result and sp rdata
 
-    input logic [ 5:0] regfile_alu_waddr_fw_i,
-    input logic        regfile_alu_we_fw_i,
-    input logic        regfile_alu_we_fw_power_i,
-    input logic [31:0] regfile_alu_wdata_fw_i,
+    input logic [          5:0]       regfile_alu_waddr_fw_i,
+    input logic                       regfile_alu_we_fw_i,
+    input logic [X_DUALWRITE:0]       regfile_alu_we_fw_power_i,
+    input logic [X_DUALWRITE:0][31:0] regfile_alu_wdata_fw_i,
 
     // from ALU
     input  logic        mult_multicycle_i,    // when we need multiple cycles in the multiplier and use op c as storage
@@ -679,7 +679,7 @@ module cv32e40px_id_stage
     // Operand a forwarding mux
     always_comb begin : operand_a_fw_mux
       case (operand_a_fw_mux_sel)
-        SEL_FW_EX:   operand_a_fw_id = regfile_alu_wdata_fw_i;
+        SEL_FW_EX:   operand_a_fw_id = regfile_alu_wdata_fw_i[0];
         SEL_FW_WB:   operand_a_fw_id = regfile_wdata_wb_i;
         SEL_REGFILE: operand_a_fw_id = regfile_data_ra_id[0];
         default:     operand_a_fw_id = regfile_data_ra_id[0];
@@ -748,7 +748,7 @@ module cv32e40px_id_stage
       // Operand b forwarding mux
       always_comb begin : operand_b_fw_mux
         case (operand_b_fw_mux_sel)
-          SEL_FW_EX:   operand_b_fw_id = regfile_alu_wdata_fw_i;
+          SEL_FW_EX:   operand_b_fw_id = regfile_alu_wdata_fw_i[0];
           SEL_FW_WB:   operand_b_fw_id = regfile_wdata_wb_i;
           SEL_REGFILE: operand_b_fw_id = regfile_data_rb_id;
           default:     operand_b_fw_id = regfile_data_rb_id;
@@ -759,7 +759,7 @@ module cv32e40px_id_stage
       // Operand b forwarding mux
       always_comb begin : operand_b_fw_mux
         case (operand_b_fw_mux_sel)
-          SEL_FW_EX:   operand_b_fw_id = regfile_alu_wdata_fw_i;
+          SEL_FW_EX:   operand_b_fw_id = regfile_alu_wdata_fw_i[0];
           SEL_FW_WB:   operand_b_fw_id = regfile_wdata_wb_i;
           SEL_REGFILE: operand_b_fw_id = regfile_data_rb_id[0];
           default:     operand_b_fw_id = regfile_data_rb_id[0];
@@ -808,7 +808,7 @@ module cv32e40px_id_stage
       // Operand c forwarding mux
       always_comb begin : operand_c_fw_mux
         case (operand_c_fw_mux_sel)
-          SEL_FW_EX:   operand_c_fw_id = regfile_alu_wdata_fw_i;
+          SEL_FW_EX:   operand_c_fw_id = regfile_alu_wdata_fw_i[0];
           SEL_FW_WB:   operand_c_fw_id = regfile_wdata_wb_i;
           SEL_REGFILE: operand_c_fw_id = regfile_data_rc_id;
           default:     operand_c_fw_id = regfile_data_rc_id;
@@ -819,7 +819,7 @@ module cv32e40px_id_stage
       // Operand c forwarding mux
       always_comb begin : operand_c_fw_mux
         case (operand_c_fw_mux_sel)
-          SEL_FW_EX:   operand_c_fw_id = regfile_alu_wdata_fw_i;
+          SEL_FW_EX:   operand_c_fw_id = regfile_alu_wdata_fw_i[0];
           SEL_FW_WB:   operand_c_fw_id = regfile_wdata_wb_i;
           SEL_REGFILE: operand_c_fw_id = regfile_data_rc_id[0];
           default:     operand_c_fw_id = regfile_data_rc_id[0];
@@ -1022,12 +1022,13 @@ module cv32e40px_id_stage
   /////////////////////////////////////////////////////////
 
   cv32e40px_register_file #(
-      .ADDR_WIDTH(6),
-      .DATA_WIDTH(32),
-      .FPU       (FPU),
-      .ZFINX     (ZFINX),
-      .COREV_X_IF(COREV_X_IF),
-      .X_DUALREAD(X_DUALREAD)
+      .ADDR_WIDTH (6),
+      .DATA_WIDTH (32),
+      .FPU        (FPU),
+      .ZFINX      (ZFINX),
+      .COREV_X_IF (COREV_X_IF),
+      .X_DUALREAD (X_DUALREAD),
+      .X_DUALWRITE(X_DUALWRITE)
   ) register_file_i (
       .clk  (clk),
       .rst_n(rst_n),
@@ -1085,6 +1086,7 @@ module cv32e40px_id_stage
           .x_issue_ready_i         (x_issue_ready_i),
           .x_issue_resp_writeback_i(x_issue_resp_i.writeback),
           .x_issue_resp_dualread_i (x_issue_resp_i.dualread),
+          .x_issue_resp_dualwrite_i (x_issue_resp_i.dualwrite),
           .x_issue_resp_accept_i   (x_issue_resp_i.accept),
           .x_issue_resp_loadstore_i(x_issue_resp_i.loadstore),
           .x_issue_req_rs_valid_o  (x_issue_req_o.rs_valid),
@@ -1375,7 +1377,7 @@ module cv32e40px_id_stage
       .COREV_PULP   (COREV_PULP),
       .FPU          (FPU)
   ) controller_i (
-      .clk          (clk),  // Gated clock
+      .clk          (clk),            // Gated clock
       .clk_ungated_i(clk_ungated_i),  // Ungated clock
       .rst_n        (rst_n),
 
@@ -1971,8 +1973,10 @@ module cv32e40px_id_stage
     if (FPU == 1) begin
       assert (APU_NDSFLAGS_CPU >= C_RM+2*cv32e40px_fpu_pkg::FP_FORMAT_BITS+cv32e40px_fpu_pkg::INT_FORMAT_BITS)
       else
-        $error("[apu] APU_NDSFLAGS_CPU APU flagbits is smaller than %0d",
-               C_RM + 2 * cv32e40px_fpu_pkg::FP_FORMAT_BITS + cv32e40px_fpu_pkg::INT_FORMAT_BITS);
+        $error(
+            "[apu] APU_NDSFLAGS_CPU APU flagbits is smaller than %0d",
+            C_RM + 2 * cv32e40px_fpu_pkg::FP_FORMAT_BITS + cv32e40px_fpu_pkg::INT_FORMAT_BITS
+        );
     end
   end
 

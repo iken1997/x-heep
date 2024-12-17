@@ -143,12 +143,12 @@ module testharness #(
 
   // eXtension Interface
   if_xif #(
-      .X_NUM_RS(fpu_ss_pkg::X_NUM_RS),
-      .X_ID_WIDTH(fpu_ss_pkg::X_ID_WIDTH),
-      .X_MEM_WIDTH(fpu_ss_pkg::X_MEM_WIDTH),
-      .X_RFR_WIDTH(fpu_ss_pkg::X_RFR_WIDTH),
-      .X_RFW_WIDTH(fpu_ss_pkg::X_RFW_WIDTH),
-      .X_MISA(fpu_ss_pkg::X_MISA)
+      .X_NUM_RS(6),
+      .X_ID_WIDTH(4),
+      .X_MEM_WIDTH(32),
+      .X_RFR_WIDTH(32),
+      .X_RFW_WIDTH(64),
+      .X_MISA(0)
   ) ext_if ();
 
   // External SPC interface signals
@@ -677,6 +677,8 @@ module testharness #(
       assign iffifo_int_o = '0;
       assign periph_slave_rsp = '0;
       assign im2col_spc_done_int_o = '0;
+      assign iffifo_out_valid = 0;
+      assign iffifo_in_ready = 0;
 
     end
   endgenerate
