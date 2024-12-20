@@ -120,7 +120,7 @@ module cv32e40px_x_disp
   generate
 
     if (X_DUALREAD != 0) begin
-      
+
       assign x_issue_req_rs_valid_o[0] = (~scoreboard_q[x_rs_addr_i[0]] | x_ex_fwd_o[0] | x_wb_fwd_o[0])
                                          & ~(x_rs_addr_i[0] == mem_instr_waddr_ex_i & mem_instr_we_ex_i) & ~(x_rs_addr_i[0] == waddr_wb_i & ~ex_valid_i);
       assign x_issue_req_rs_valid_o[1] = (~scoreboard_q[x_rs_addr_i[1]] | x_ex_fwd_o[1] | x_wb_fwd_o[1])
@@ -136,7 +136,7 @@ module cv32e40px_x_disp
       assign x_issue_req_ecs_valid = 1'b1;  // extension context status is not implemented in cv32e40px
 
     end else begin
-      
+
       assign x_issue_req_rs_valid_o[0] = (~scoreboard_q[x_rs_addr_i[0]] | x_ex_fwd_o[0] | x_wb_fwd_o[0])
                                          & ~(x_rs_addr_i[0] == mem_instr_waddr_ex_i & mem_instr_we_ex_i) & ~(x_rs_addr_i[0] == waddr_wb_i & ~ex_valid_i);
       assign x_issue_req_rs_valid_o[1] = (~scoreboard_q[x_rs_addr_i[1]] | x_ex_fwd_o[1] | x_wb_fwd_o[1])
@@ -144,9 +144,9 @@ module cv32e40px_x_disp
       assign x_issue_req_rs_valid_o[2] = (~scoreboard_q[x_rs_addr_i[2]] | x_ex_fwd_o[2] | x_wb_fwd_o[2])
                                          & ~(x_rs_addr_i[2] == mem_instr_waddr_ex_i & mem_instr_we_ex_i) & ~(x_rs_addr_i[2] == waddr_wb_i & ~ex_valid_i);
       assign x_issue_req_ecs_valid = 1'b1;  // extension context status is not implemented in cv32e40px
-    
+
     end
- 
+
   endgenerate
 
 
@@ -202,7 +202,7 @@ module cv32e40px_x_disp
                                   |     (regs_used_i[2] & scoreboard_q[x_rs_addr_i[2]] & (x_result_rd_i != x_rs_addr_i[2]))
                                   |     (((regs_used_i[0] & x_issue_resp_dualread_i[0]) & scoreboard_q[x_rs_addr_i[0] | 5'b00001] & (x_result_rd_i != (x_rs_addr_i[0] | 5'b00001))) & x_issue_resp_dualread_i[0])
                                   |     (((regs_used_i[1] & x_issue_resp_dualread_i[1]) & scoreboard_q[x_rs_addr_i[1] | 5'b00001] & (x_result_rd_i != (x_rs_addr_i[1] | 5'b00001))) & x_issue_resp_dualread_i[1])
-                                  |     (((regs_used_i[2] & x_issue_resp_dualread_i[2]) & scoreboard_q[x_rs_addr_i[2] | 5'b00001] & (x_result_rd_i != (x_rs_addr_i[2] | 5'b00001))) & x_issue_resp_dualread_i[2])); 
+                                  |     (((regs_used_i[2] & x_issue_resp_dualread_i[2]) & scoreboard_q[x_rs_addr_i[2] | 5'b00001] & (x_result_rd_i != (x_rs_addr_i[2] | 5'b00001))) & x_issue_resp_dualread_i[2]));
     end else begin
 
       assign x_ex_fwd_o[0] = x_rs_addr_i[0] == waddr_ex_i & we_ex_i & ex_valid_i;
@@ -251,12 +251,12 @@ module cv32e40px_x_disp
           if (x_issue_resp_dualwrite_i == 1'b1) begin
             scoreboard_d[waddr_id_i|5'b00001] = 1'b1;
           end
-          if (x_result_valid_i & x_result_we_i[0]) begin
+        end
+        if (x_result_valid_i & x_result_we_i[0]) begin
+          scoreboard_d[x_result_rd_i] = 1'b0;
+          if (x_result_we_i[1]) begin
+            scoreboard_d[x_result_rd_i|5'b00001] = 1'b0;
             scoreboard_d[x_result_rd_i] = 1'b0;
-            if (x_result_we_i[1]) begin
-              scoreboard_d[x_result_rd_i|5'b00001] = 1'b0;
-              scoreboard_d[x_result_rd_i] = 1'b0;
-            end
           end
         end
       end
