@@ -43,7 +43,7 @@ jobs:
   compile-apps:
     name: Compile All Apps
     runs-on: ubuntu-latest
-    needs: determine-image-tag
+    needs: [determine-image-tag, lint, gen-peripherals, gen-pads, check-vendor, black-formatter]
     container:
       image: ghcr.io/esl-epfl/x-heep/x-heep-toolchain:${{ needs.determine-image-tag.outputs.tag }}
     steps:
@@ -55,12 +55,12 @@ jobs:
         shell: bash -l {0}
         run: |
           make mcu-gen X_HEEP_CFG=configs/ci.hjson && \
-          python3 test/test_apps/test_apps.py --compilers gcc,clang --compiler-paths /tools/riscv --compiler-prefixes riscv32-unknown- --compile-only
+          python3 test/test_apps/test_apps.py --compilers gcc,clang,gcc --compiler-paths /tools/riscv --compiler-prefixes riscv32-corev-,riscv32-unknown-,riscv32-unknown- --table --compile-only
 
   simulate-apps:
     name: Simulate All Apps
     runs-on: ubuntu-latest
-    needs: determine-image-tag
+    needs: [determine-image-tag, compile-apps]
     container:
       image: ghcr.io/esl-epfl/x-heep/x-heep-toolchain:${{ needs.determine-image-tag.outputs.tag }}
     steps:
@@ -72,7 +72,7 @@ jobs:
         shell: bash -l {0}
         run: |
           make mcu-gen X_HEEP_CFG=configs/ci.hjson && \
-          python3 test/test_apps/test_apps.py --compilers gcc,clang --compiler-paths /tools/riscv --compiler-prefixes riscv32-unknown-
+          python3 test/test_apps/test_apps.py --compilers gcc --compiler-paths /tools/riscv --compiler-prefixes riscv32-corev- --table
 
   lint:
     name: Lint Generated Files
