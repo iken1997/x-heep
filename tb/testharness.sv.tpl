@@ -770,6 +770,8 @@ module testharness #(
       assign iffifo_int_o = '0;
       assign periph_slave_rsp = '0;
       assign im2col_spc_done_int_o = '0;
+      assign iffifo_out_valid = 0;
+      assign iffifo_in_ready = 0;
 
     end
   endgenerate

@@ -15,7 +15,8 @@ package cv32e40px_core_v_xif_pkg;
 
   // cv-x-if parameters
   parameter int X_NUM_RS = 3;
-  parameter int X_DUALREAD = 0;  // 0: single read, 1: dual read
+  parameter int X_DUALREAD = 1;  // 0: single read, 1: dual read
+  parameter int X_DUALWRITE = 1;  // 0: single write, 1: dual write
   parameter int X_ID_WIDTH = 4;
   parameter int X_MEM_WIDTH = 32;
   parameter int X_RFR_WIDTH = 32;
@@ -25,7 +26,7 @@ package cv32e40px_core_v_xif_pkg;
 
   localparam int XLEN = 32;
   localparam int RF_READ_PORTS = (X_DUALREAD == 1) ? 2 * X_NUM_RS : X_NUM_RS;
-
+  localparam int RF_WRITE_PORTS = (X_DUALWRITE == 1) ? 2 : 1;
 
   typedef struct packed {
     logic [15:0] instr;  // Offloaded compressed instruction
@@ -91,9 +92,9 @@ package cv32e40px_core_v_xif_pkg;
 
   typedef struct packed {
     logic [X_ID_WIDTH      -1:0] id;  // Identification of the offloaded instruction
-    logic [X_RFW_WIDTH     -1:0] data;  // Register file write data value(s)
+    logic [RF_WRITE_PORTS -1:0][X_RFW_WIDTH-1:0] data;  // Register file write data value(s)    
     logic [4:0] rd;  // Register file destination address(es)
-    logic [X_RFW_WIDTH/XLEN-1:0] we;  // Register file write enable(s)
+    logic [RF_WRITE_PORTS-1:0] we;  // Register file write enable(s)
     logic [5:0] ecsdata;  // Write data value for {mstatus.xs, mstatus.fs, mstatus.vs}
     logic [2:0] ecswe;  // Write enables for {mstatus.xs, mstatus.fs, mstatus.vs}
     logic exc;  // Did the instruction cause a synchronous exception?
