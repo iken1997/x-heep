@@ -106,16 +106,16 @@ module cv32e40px_ex_stage
     output logic            apu_write_dep_o,
 
     // X-Interface
-    input  logic        x_result_valid_assigned_i,
-    input  logic [ 4:0] x_result_rd_i,
+    input  logic                       x_result_valid_assigned_i,
+    input  logic [          4:0]       x_result_rd_i,
     input  logic [X_DUALWRITE:0][31:0] x_result_data_i,
     input  logic [X_DUALWRITE:0]       x_result_we_i,
-    input  logic        x_mem_instr_i,
-    input  logic [ 3:0] x_mem_id_ex_i,
-    output logic [31:0] x_mem_result_rdata_o,
-    output logic        x_mem_instr_wb_o,
-    output logic [ 3:0] x_mem_result_id_o,
-    output logic [31:0] result_fw_to_x_o,
+    input  logic                       x_mem_instr_i,
+    input  logic [          3:0]       x_mem_id_ex_i,
+    output logic [         31:0]       x_mem_result_rdata_o,
+    output logic                       x_mem_instr_wb_o,
+    output logic [          3:0]       x_mem_result_id_o,
+    output logic [         31:0]       result_fw_to_x_o,
 
 
     output logic apu_perf_type_o,
@@ -159,8 +159,8 @@ module cv32e40px_ex_stage
     output logic [31:0] regfile_wdata_wb_o,
 
     // Forwarding ports : to ID stage
-    output logic [ 5:0] regfile_alu_waddr_fw_o,
-    output logic        regfile_alu_we_fw_o,
+    output logic [5:0] regfile_alu_waddr_fw_o,
+    output logic regfile_alu_we_fw_o,
     output logic [X_DUALWRITE:0] regfile_alu_we_fw_power_o,
     output logic [X_DUALWRITE:0][31:0] regfile_alu_wdata_fw_o,  // forward to RF and ID/EX pipe, ALU & MUL
 
@@ -175,7 +175,7 @@ module cv32e40px_ex_stage
 
     output logic ex_ready_o,  // EX stage ready for new data
     output logic ex_valid_o,  // EX stage gets new data
-    input  logic wb_ready_i  // WB stage ready for new data
+    input  logic wb_ready_i   // WB stage ready for new data
 );
 
   logic [                31:0] alu_result;
@@ -186,6 +186,7 @@ module cv32e40px_ex_stage
   logic [                 5:0] regfile_waddr_lsu;
 
   logic                        wb_contention;
+  logic                        wb_contention_xif;
   logic                        wb_contention_lsu;
 
   logic                        alu_ready;
@@ -307,8 +308,8 @@ module cv32e40px_ex_stage
               result_fw_to_x_o       = mult_result;
             end
             if (csr_access_i) begin
-              regfile_alu_wdata_fw_o = csr_rdata_i;
-              result_fw_to_x_o       = csr_rdata_i;
+              regfile_alu_wdata_fw_o    = csr_rdata_i;
+              result_fw_to_x_o          = csr_rdata_i;
             end
           end
         end

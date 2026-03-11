@@ -43,6 +43,7 @@ module cv32e40px_register_file #(
     input logic scan_cg_en_i,
 
     input logic [2:0] dualread_i,
+    input logic dualwrite_i,
 
     //Read port R1
     input logic [ADDR_WIDTH-1:0] raddr_a_i,
@@ -86,6 +87,11 @@ module cv32e40px_register_file #(
   // write enable signals for all registers
   logic [NUM_TOT_WORDS-1:0]                 we_a_dec;
   logic [NUM_TOT_WORDS-1:0]                 we_b_dec;
+
+  // dualwrite flag
+  logic                                     dualwrite;
+
+
 
 
   //-----------------------------------------------------------------------------
@@ -136,25 +142,17 @@ module cv32e40px_register_file #(
   //-----------------------------------------------------------------------------
 
   // Mask top bit of write address to disable fp regfile
-  assign waddr_a = waddr_a_i;
-  assign waddr_b = waddr_b_i;
+  assign waddr_a   = waddr_a_i;
+  assign waddr_b   = waddr_b_i;
+  // if the address is even, and both write enable signals are asserted, a dual write has to be performed.
+  
+  assign dualwrite = (X_DUALWRITE != 0) ? !waddr_b_i[0] & (&we_b_i) & dualwrite_i : 1'b0;
 
   genvar gidx;
   generate
     for (gidx = 0; gidx < NUM_TOT_WORDS; gidx++) begin : gen_we_decoder
       assign we_a_dec[gidx] = (waddr_a == gidx) ? we_a_i : 1'b0;
-      //[dual write] new logic for port b due to  dual write addition
-      if (X_DUALWRITE == 1) begin
-        if (gidx % 2 == 0) begin
-          // access to even indexed registers is the same 
-          assign we_b_dec[gidx] = (waddr_b == gidx) ? we_b_i[0] : 1'b0;
-        end else begin
-          // odd registers can be written directly or indirectly through dualwrite
-          assign we_b_dec[gidx] = (waddr_b == (gidx - 1)) ? we_b_i[1] : (waddr_b == gidx)? we_b_i[0] : 1'b0;
-        end
-      end else begin
-        assign we_b_dec[gidx] = (waddr_b == gidx) ? we_b_i[0] : 1'b0;
-      end
+      assign we_b_dec[gidx] = (waddr_b == gidx) ? we_b_i[0] : 1'b0;
     end
   endgenerate
 
@@ -177,54 +175,28 @@ module cv32e40px_register_file #(
 
     // loop from 1 to NUM_WORDS-1 as R0 is nil
     for (i = 1; i < NUM_WORDS; i++) begin : gen_rf
-      if (X_DUALWRITE != 0) begin
-        if (i % 2 == 0) begin
-          // [dual write] in even indexes check next bit of decoder b, choose data to write accordingly
-          always_ff @(posedge clk, negedge rst_n) begin : register_dualwrite_behavioral
-            if (rst_n == 1'b0) begin
-              mem[i]   <= 32'b0;
-              mem[i+1] <= 32'b0;
-            end else begin
-              if (we_b_dec[i] == 1'b1 & we_b_dec[i+1] == 1'b1) begin  //write pair
-                mem[i]   <= wdata_b_i[0];
-                mem[i+1] <= wdata_b_i[1];
-              end else if (we_b_dec[i] == 1'b1) begin
-                mem[i] <= wdata_b_i[0];
-              end else if (we_b_dec[i+1] == 1'b1) begin
-                mem[i+1] <= wdata_b_i[0];
-              end else if (we_a_dec[i] == 1'b1) begin
-                mem[i] <= wdata_a_i;
-              end else if (we_a_dec[i+1] == 1'b1) begin
-                mem[i+1] <= wdata_a_i;
-              end
-            end
-          end
-        end else if (i == 1) begin  // [dualwrite] case for register 1
-          always_ff @(posedge clk, negedge rst_n) begin : register_write_behavioral
-            if (rst_n == 1'b0) begin
-              mem[i] <= 32'b0;
-            end else begin
-              if (we_b_dec[i] == 1'b1) mem[i] <= wdata_b_i[0];
-              else if (we_a_dec[i] == 1'b1) mem[i] <= wdata_a_i;
-            end
+
+      always_ff @(posedge clk, negedge rst_n) begin : register_write_behavioral
+        if (rst_n == 1'b0) begin
+          mem[i] <= 32'b0;
+        end else begin
+          if ((i % 2 == 0)) begin // even address write content of port b[0]
+            if (we_b_dec[i] == 1'b1)  mem[i]   <= wdata_b_i[0];
+            else if (we_a_dec[i] == 1'b1)
+              mem[i]                           <= wdata_a_i;
+          end else begin // odd address: if dualwrite is set,check correspondent odd addr dec, and write content of port b[1], else write content of port b[0] to even address
+            if (dualwrite & we_b_dec[i-1] == 1'b1)
+              mem[i]                           <= wdata_b_i[1];
+            else if (we_b_dec[i] == 1'b1)
+              mem[i]                           <= wdata_b_i[0];
+            else if (we_a_dec[i] == 1'b1)
+              mem[i]                           <= wdata_a_i;
           end
         end
-
-      end else begin
-
-        always_ff @(posedge clk, negedge rst_n) begin : register_write_behavioral
-          if (rst_n == 1'b0) begin
-            mem[i] <= 32'b0;
-          end else begin
-            if (we_b_dec[i] == 1'b1) mem[i] <= wdata_b_i;
-            else if (we_a_dec[i] == 1'b1) mem[i] <= wdata_a_i;
-          end
-        end
-
       end
 
     end
-
+    
     if (FPU == 1 && ZFINX == 0) begin : gen_mem_fp_write
       // Floating point registers
       for (l = 0; l < NUM_FP_WORDS; l++) begin

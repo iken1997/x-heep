@@ -448,10 +448,13 @@ module cv32e40px_id_stage
   logic x_mem_valid;
   logic [RF_READ_PORTS-1:0] x_ex_fwd;
   logic [RF_READ_PORTS-1:0] x_wb_fwd;
+  logic x_wait_result;
+
 
   // Register Write Control
   logic regfile_we_id;
   logic regfile_alu_waddr_mux_sel;
+  logic dw_pending;
 
   // Data Memory Control
   logic data_we_id;
@@ -1041,7 +1044,8 @@ module cv32e40px_id_stage
 
       .scan_cg_en_i(scan_cg_en_i),
 
-      .dualread_i(x_issue_resp_i.dualread),
+      .dualread_i (x_issue_resp_i.dualread),
+      .dualwrite_i(dw_pending),
 
       // Read port a
       .raddr_a_i(regfile_addr_ra_id),
@@ -1092,7 +1096,7 @@ module cv32e40px_id_stage
           .x_issue_ready_i         (x_issue_ready_i),
           .x_issue_resp_writeback_i(x_issue_resp_i.writeback),
           .x_issue_resp_dualread_i (x_issue_resp_i.dualread),
-          .x_issue_resp_dualwrite_i (x_issue_resp_i.dualwrite),
+          .x_issue_resp_dualwrite_i(x_issue_resp_i.dualwrite),
           .x_issue_resp_accept_i   (x_issue_resp_i.accept),
           .x_issue_resp_loadstore_i(x_issue_resp_i.loadstore),
           .x_issue_req_rs_valid_o  (x_issue_req_o.rs_valid),
@@ -1174,6 +1178,17 @@ module cv32e40px_id_stage
       assign x_result_valid_assigned_o = x_result_valid_i;
       assign x_mem_valid = x_mem_valid_i;
 
+      // [todo] remove latches for timing performances 
+      // always_latch @(x_commit_valid_o, x_result_valid_i) begin
+        
+      //   if (x_result_valid_i == 1'b1) x_wait_result <= 1'b0;
+      //   if (x_commit_valid_o & x_issue_resp_i.writeback) x_wait_result <= 1'b1;
+
+      // end
+
+
+
+
       // xif integer souce operand selection
       for (genvar j = 0; j < REGFILE_NUM_READ_PORTS; j++) begin : xif_operand_assignment_dualread
         for (genvar i = 0; i < 3; i++) begin : xif_operand_assignment
@@ -1191,6 +1206,20 @@ module cv32e40px_id_stage
               x_issue_req_o.rs[i+3*j] = regfile_wdata_wb_i;
             end
           end
+        end
+      end
+
+      // Dualwrite
+      always_ff @(posedge clk, negedge rst_n) begin
+
+        if (!rst_n) dw_pending <= 0;
+        else begin
+          if (x_issue_resp_i.dualwrite & x_issue_valid_o) begin
+            dw_pending <= 1;
+          end else if (x_result_valid_i & x_result_ready_o & (x_result_i.we[1])) begin
+            dw_pending <= 0;
+          end
+
         end
       end
 
@@ -1911,11 +1940,13 @@ module cv32e40px_id_stage
           data_load_event_ex_o <= 1'b0;
         end
 
-      end else if (csr_access_ex_o) begin
+      end else if (csr_access_ex_o & !x_result_valid_assigned_o) begin
         //In the EX stage there was a CSR access, to avoid multiple
         //writes to the RF, disable regfile_alu_we_ex_o.
         //Not doing it can overwrite the RF file with the currennt CSR value rather than the old one
         regfile_alu_we_ex_o <= 1'b0;
+        //If xif is writing don't disable
+
       end
     end
   end
